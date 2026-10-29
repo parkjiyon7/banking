@@ -1,0 +1,10 @@
+spec_version: v1
+kind: knowledge_base
+name: product_guide
+description: >
+  금융 상품 안내 문서를 담은 지식 베이스입니다.
+  예금, 적금, 대출, 투자, 외환 등 다양한 금융 상품의 금리, 조건, 자격 요건 정보를 포함합니다.
+documents:
+  - financial_products_guide.txt
+vector_index:
+  embeddings_model_name: ibm/slate-125m-english-rtrvr-v2

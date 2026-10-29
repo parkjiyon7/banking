@@ -1,0 +1,8 @@
+spec_version: v1
+kind: connection
+app_id: exchange_rate_api
+environments:
+  draft:
+    security_scheme: api_key_auth
+    type: team
+    server_url: "https://oapi.koreaexim.go.kr/site/program/financial/exchangeJSON"

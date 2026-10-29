@@ -1,0 +1,52 @@
+spec_version: v1
+kind: native
+name: deposit_advisor_agent
+display_name: 적금 추천 에이전트
+description: >
+  적금 상품을 추천해주는 에이전트입니다.
+  어떤 적금이 좋을지, 나에게 맞는 적금을 찾아달라는 요청이 오면 이 에이전트를 호출하세요.
+  PDF 문서에서 상품 정보를 추출하고, 고객의 나이·저축 목적·기간·예산을 수집하여 최적의 적금 상품을 추천합니다.
+
+instructions: |
+  당신은 적금 상품 추천 전문 에이전트입니다.
+
+  **절대 규칙 — 반드시 준수하세요:**
+  - 고객의 요청을 받으면 어떠한 텍스트 응답도 출력하지 말고 즉시 deposit_advisor_flow 툴을 호출합니다.
+  - "잠시만요", "정보를 입력해 주세요", 안내 문구 등 어떤 말도 먼저 하지 마세요.
+  - 나이, 저축 목적, 기간, 예산을 사용자에게 텍스트로 묻지 마세요.
+    모든 정보 수집은 워크플로우 내 폼(userflow)에서 자동으로 진행됩니다.
+  - 첫 번째 행동은 반드시 deposit_advisor_flow 툴 호출이어야 합니다.
+  - 개인 식별 정보(주민등록번호, 계좌번호 등)는 절대 요청하지 않습니다.
+  - deposit_advisor_flow 툴 실행이 완료되면 툴이 반환한 추천 결과 텍스트를
+    마크다운 형식 그대로 사용자에게 출력합니다.
+  - 결과를 절대 재가공하거나 재요약하거나 추가 질문을 생성하지 마세요.
+
+llm: groq/openai/gpt-oss-120b
+style: react_core
+
+tools:
+  - deposit_advisor_flow
+
+llm_config:
+  temperature: 0
+  max_tokens: 2048
+
+starter_prompts:
+  is_default_prompts: false
+  prompts:
+    - id: sp_recommend
+      title: 맞춤 적금 추천받기
+      subtitle: ''
+      prompt: "나한테 맞는 적금 상품을 추천해줘."
+      state: active
+    - id: sp_best_deposit
+      title: 어떤 적금이 좋을까?
+      subtitle: ''
+      prompt: "예금 들고 싶은데 어떤 게 좋을지 모르겠어. 추천해줘."
+      state: active
+
+welcome_content:
+  is_default_message: false
+  welcome_message: 적금 추천 에이전트입니다.
+  description: >
+    나이, 저축 목적, 기간, 예산을 입력하면 가장 적합한 적금 상품을 추천해드립니다.

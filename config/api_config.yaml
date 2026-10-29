@@ -1,0 +1,29 @@
+# =============================================================================
+#  API 설정 파일 (API Configuration)
+#  환율 API 연동 정보를 여기에서 관리합니다.
+#  API URL 또는 key가 변경되면 이 파일만 수정하면 코드 변경 없이 반영됩니다.
+#  ⚠️  이 파일은 .gitignore에 포함하여 버전 관리에 포함하지 마세요.
+# =============================================================================
+
+exchange_rate_api:
+  # 한국수출입은행 환율 API
+  # 공식 문서: https://www.koreaexim.go.kr/ir/HPHKIR020M01?apino=2&viewtype=C&searchselect=&searchword=
+  base_url: "https://oapi.koreaexim.go.kr/site/program/financial/exchangeJSON"
+
+  # 발급받은 인증키
+  authkey: "fQPJiBworRRDQ0jHnVJRIxMadqVOqnDq"
+
+  # 데이터 코드 (AP01 = 환율 데이터)
+  data_code: "AP01"
+
+  # 요청 타임아웃 (초)
+  timeout_seconds: 10
+
+  # 응답 필드 설명:
+  #   cur_unit     : 통화코드 (예: USD, EUR, JPY)
+  #   cur_nm       : 통화명 (한국어, 예: 미국 달러)
+  #   deal_bas_r   : 매매 기준율 (원화 기준)
+  #   ttb          : 전신환 매입률 (은행이 사는 가격)
+  #   tts          : 전신환 매도율 (은행이 파는 가격)
+  #   bkpr         : 장부가격
+  #   result       : 1 = 정상, 2 = DATA코드 오류, 3 = 인증코드 오류, 4 = 일일제한횟수 초과

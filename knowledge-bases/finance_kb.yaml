@@ -1,0 +1,12 @@
+spec_version: v1
+kind: knowledge_base
+name: finance_knowledge_base
+description: 금융 산업 관련 규정, 상품 설명서, 리스크 가이드라인, 투자 정책 등의 문서를 포함한 금융 전문 지식 베이스입니다.
+documents:
+  - financial_products_guide.txt
+  - risk_management_policy.txt
+  - regulatory_compliance_guide.txt
+  - investment_strategy_overview.txt
+  - market_outlook_report.pdf
+vector_index:
+  embeddings_model_name: ibm/slate-125m-english-rtrvr-v2

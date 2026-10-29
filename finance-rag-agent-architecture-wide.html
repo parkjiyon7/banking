@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Full Architecture — watsonx Orchestrate Finance RAG Agent (Wide)</title>
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue:     #1a56db;
+      --blue-d:   #1341b0;
+      --blue-l:   #e8f0fe;
+      --gray-50:  #f7f8fa;
+      --gray-100: #f0f1f5;
+      --gray-200: #e2e4ea;
+      --gray-400: #9097aa;
+      --gray-500: #6b7280;
+      --gray-600: #555e72;
+      --gray-800: #0f172a;
+      --white:    #ffffff;
+      --radius:   12px;
+      --shadow:   0 4px 20px rgba(0,0,0,.05);
+    }
+    body {
+      font-family: -apple-system, "Segoe UI", system-ui, "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+      background: #fafafa;
+      color: var(--gray-800);
+      font-size: 14px;
+      line-height: 1.6;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    /* ── Capture Container ── */
+    .capture-container {
+      width: 1380px;
+      background: var(--white);
+      border: 1.5px solid var(--gray-200);
+      border-radius: var(--radius);
+      padding: 40px 36px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .capture-header {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      color: var(--gray-600);
+      letter-spacing: .5px;
+      text-transform: uppercase;
+    }
+
+    /* ══ Full Architecture Diagram ══════════════════════════════════ */
+    .fa-wrap { display:flex; flex-direction:column; align-items:center; gap:0; width: 100%; }
+
+    /* 사용자 / 중앙 정렬 열 */
+    .fa-center-col { display:flex; justify-content:center; width:100%; }
+
+    /* 사용자 버블 */
+    .fa-bubble {
+      display:inline-flex; flex-direction:column; align-items:center;
+      background:#1e2d4e; color:#fff; border-radius:40px;
+      padding:14px 40px; gap:2px; min-width:220px; text-align:center;
+    }
+    .fa-bub-icon  { font-size:24px; }
+    .fa-bub-title { font-size:15px; font-weight:800; }
+    .fa-bub-sub   { font-size:11px; color:rgba(255,255,255,.6); }
+
+    /* 사용자 ↔ Top 연결 */
+    .fa-conn-row {
+      display:flex; flex-direction:column; align-items:center; gap:2px; padding:2px 0;
+    }
+    .fa-conn-label { font-size:11px; font-weight:600; }
+    .fa-vline { width:2px; height:20px; background:#aab4cc; }
+
+    /* Top Agent 카드 */
+    .fa-top-card {
+      background:#1a56db; color:#fff;
+      border-radius:14px; padding:22px 48px;
+      text-align:center; min-width:320px;
+      box-shadow:0 4px 18px rgba(26,86,219,.28);
+    }
+    .fa-tc-icon { font-size:30px; margin-bottom:8px; }
+    .fa-tc-name { font-size:17px; font-weight:800; letter-spacing:.3px; margin-bottom:6px; }
+    .fa-tc-row  { font-size:12px; color:rgba(255,255,255,.75); line-height:1.7; }
+
+    /* 분기 레이블 */
+    .fa-branch-labels {
+      display:grid; grid-template-columns:1fr 1fr 1fr;
+      width:100%; padding:10px 0 4px;
+    }
+    .fa-bl { display:flex; flex-direction:column; gap:2px; }
+    .fa-bl-left   { align-items:flex-start;  padding-left:5%; }
+    .fa-bl-center { align-items:center; }
+    .fa-bl-right  { align-items:flex-end; padding-right:5%; }
+    .fa-bl-out { font-size:11px; font-weight:700; color:var(--gray-600); }
+    .fa-bl-in  { font-size:10px; font-weight:600; }
+
+    /* 수평선 */
+    .fa-hbar { display:flex; justify-content:center; width:100%; margin-bottom:6px; }
+    .fa-hline { width:72%; height:2px; background:#aab4cc; }
+
+    /* 분기/수렴 SVG 컨테이너 */
+    .fa-svg-branch { width:100%; display:block; }
+    .fa-svg-conn   { width:200px; display:block; margin:0 auto; }
+
+    /* Sub-Agent 3열 */
+    .fa-agents-row { display:flex; gap:16px; width:100%; align-items:flex-start; }
+    .fa-sa-col { flex:1; display:flex; flex-direction:column; min-width:0; }
+
+    /* Sub-Agent 카드 */
+    .fa-sa-card {
+      border-radius:12px; border:2px solid transparent;
+      overflow:hidden; display:flex; flex-direction:column;
+    }
+    .fa-sa-green  { border-color:#2e7d32; background:#f1faf2; }
+    .fa-sa-orange { border-color:#e65100; background:#fff8f3; }
+    .fa-sa-purple { border-color:#6a1b9a; background:#faf5ff; }
+
+    .fa-sa-hdr {
+      padding:10px 14px 8px;
+      border-bottom:1px solid rgba(0,0,0,.07);
+    }
+    .fa-sa-name { font-size:13px; font-weight:800; color:#1f2328; }
+    .fa-sa-tag  { font-size:11px; color:var(--gray-500); margin-top:2px; }
+
+    /* SA body (노드 세로 배열) */
+    .fa-sa-body { padding:12px; display:flex; flex-direction:column; gap:6px; }
+    .fa-node {
+      display:flex; align-items:flex-start; gap:10px;
+      background:#fff; border:1px solid var(--gray-200);
+      border-radius:8px; padding:10px 12px;
+    }
+    .fa-node-ico { font-size:20px; flex-shrink:0; margin-top:1px; }
+    .fa-node-t   { font-size:12px; font-weight:700; color:#1f2328; line-height:1.4; }
+    .fa-node-s   { font-size:11px; color:var(--gray-500); margin-top:2px; line-height:1.4; }
+    .fa-down-arr { text-align:center; color:var(--gray-400); font-size:14px; }
+
+    /* SA2 내부 flow - 스크롤 제거 및 넓은 가로 레이아웃 */
+    .fa-flow-wrap { padding:12px 10px; flex:1; overflow:visible; }
+    .fa-flow-lbl {
+      font-size:11px; font-weight:700; color:#e65100;
+      padding:4px 10px; background:#fff3e0;
+      border-radius:6px; display:inline-block; margin-bottom:8px;
+    }
+    .fa-flow-nodes {
+      display:flex; align-items:flex-start; gap:4px; min-width:0;
+    }
+    .fa-flow-node {
+      width:110px; flex-shrink:0; border-radius:8px; border:1.5px solid transparent;
+      display:flex; flex-direction:column;
+    }
+    .fa-fn-purple { background:#f0ebff; border-color:#c9b8e8; }
+    .fa-fn-teal   { background:#e6f7f7; border-color:#9dd4d4; }
+    .fa-fn-green  { background:#e8f5e9; border-color:#a5d6a7; }
+
+    .fa-fn-hdr {
+      font-size:10px; font-weight:700; color:#1f2328;
+      padding:5px 7px 4px; border-bottom:1px solid rgba(0,0,0,.07);
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .fa-fn-body { padding:7px; display:flex; flex-direction:column; gap:2px; }
+    .fa-fn-inner { display:flex; flex-direction:column; gap:2px; }
+    .fa-fn-name  { font-size:11px; font-weight:700; color:#1f2328; margin-bottom:3px; }
+    .fa-fn-kv    { font-size:10px; color:var(--gray-600); line-height:1.4;
+                   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .fa-fn-arr   { display:flex; align-items:flex-start; padding-top:28px;
+                   color:var(--gray-400); font-size:16px; flex-shrink:0; padding-left:2px; padding-right:2px; }
+
+    /* 한국어 display_name 인라인 뱃지 */
+    .fa-tc-dn {
+      display:inline-block; font-size:12px; font-weight:600;
+      color:rgba(255,255,255,.75); background:rgba(255,255,255,.18);
+      border-radius:12px; padding:2px 10px; margin-left:6px;
+      vertical-align:middle;
+    }
+    .fa-sa-dn {
+      display:inline-block; font-size:10px; font-weight:600;
+      color:var(--gray-500); background:rgba(0,0,0,.05);
+      border-radius:10px; padding:1px 8px; margin-left:4px;
+      vertical-align:middle; white-space:nowrap;
+    }
+
+    /* 데이터 소스 연결 */
+    .fa-ds-conn  { display:flex; flex-direction:column; align-items:center; }
+    .fa-ds-vline { width:2px; height:18px; background:#aab4cc; }
+    .fa-ds-card  {
+      width:100%; background:#f7f8fa; border:1px solid #d0d7de;
+      border-radius:8px; padding:10px 14px; text-align:center;
+    }
+    .fa-ds-ico  { font-size:18px; margin-bottom:4px; }
+    .fa-ds-name { font-size:12px; font-weight:700; color:#1f2328; }
+    .fa-ds-sub  { font-size:10px; color:var(--gray-500); margin-top:2px; }
+
+    /* SA 활용 유형 배지 */
+    .fa-sa-badge {
+      display:inline-block; font-size:10px; font-weight:800;
+      padding:3px 10px; border-radius:20px; margin-bottom:5px;
+      letter-spacing:.3px;
+    }
+
+    /* 화살표 레이블 */
+    .fa-arr-down { color:var(--gray-500); }
+    .fa-arr-up   { }
+    .fa-conn-row { gap:0; }
+
+    /* Powered by Bob */
+    .fa-powered {
+      margin-top:20px; padding-top:14px;
+      border-top:1px solid var(--gray-200);
+      text-align:center; font-size:12px; color:var(--gray-400);
+      display:flex; align-items:center; justify-content:center; gap:8px;
+    }
+    .fa-powered strong { color:#1a56db; font-weight:700; }
+    .fa-powered-dot {
+      display:inline-block; width:5px; height:5px;
+      background:#1a56db; border-radius:50%; opacity:.5;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="capture-container">
+    <div class="capture-header">Full Architecture — watsonx Orchestrate Finance RAG Agent</div>
+
+    <div class="fa-wrap">
+
+      <!-- ── 사용자 버블 ── -->
+      <div class="fa-center-col">
+        <div class="fa-bubble">
+          <div class="fa-bub-icon">👤</div>
+          <div class="fa-bub-title">사용자 질문</div>
+          <div class="fa-bub-sub">금융 AI 어시스턴트 채팅</div>
+        </div>
+      </div>
+
+      <!-- ── 사용자 → Top : SVG 양방향 화살표 ── -->
+      <div class="fa-svg-conn">
+        <svg viewBox="0 0 200 56" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <marker id="arr-dn" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+              <path d="M1,1 L7,4 L1,7 Z" fill="#9097aa"/>
+            </marker>
+            <marker id="arr-up" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto-start-reverse">
+              <path d="M1,1 L7,4 L1,7 Z" fill="#1a56db"/>
+            </marker>
+          </defs>
+          <!-- 아래 방향: 질문 입력 -->
+          <line x1="94" y1="2" x2="94" y2="50" stroke="#9097aa" stroke-width="2" marker-end="url(#arr-dn)"/>
+          <!-- 위 방향: 답변 반환 -->
+          <line x1="106" y1="50" x2="106" y2="4" stroke="#1a56db" stroke-width="2" marker-end="url(#arr-up)"/>
+          <text x="116" y="22" font-size="10" fill="#6b7280" font-family="system-ui,sans-serif">질문 입력</text>
+          <text x="116" y="38" font-size="10" fill="#1a56db" font-family="system-ui,sans-serif">최종 답변 반환</text>
+        </svg>
+      </div>
+
+      <!-- ── Top Agent ── -->
+      <div class="fa-center-col">
+        <div class="fa-top-card">
+          <div class="fa-tc-icon">🏦</div>
+          <div class="fa-tc-name">finance_rag_agent <span class="fa-tc-dn">금융 AI 어시스턴트</span></div>
+          <div class="fa-tc-row">Top Orchestrator · react_core · LLM: gpt-oss-120b</div>
+          <div class="fa-tc-row">질문 분류 후 Sub-Agent 라우팅</div>
+        </div>
+      </div>
+
+      <!-- ── Top → Sub 분기 SVG ── -->
+      <div class="fa-svg-branch" id="fa-svg-branch-top">
+        <svg viewBox="0 0 900 80" width="100%" height="80" preserveAspectRatio="none"
+             xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <marker id="b-green"  markerWidth="8" markerHeight="8" refX="4" refY="7" orient="auto">
+              <path d="M1,1 L7,4 L1,7 Z" fill="#2e7d32"/>
+            </marker>
+            <marker id="b-orange" markerWidth="8" markerHeight="8" refX="4" refY="7" orient="auto">
+              <path d="M1,1 L7,4 L1,7 Z" fill="#e65100"/>
+            </marker>
+            <marker id="b-purple" markerWidth="8" markerHeight="8" refX="4" refY="7" orient="auto">
+              <path d="M1,1 L7,4 L1,7 Z" fill="#6a1b9a"/>
+            </marker>
+          </defs>
+          <line x1="450" y1="0" x2="450" y2="22" stroke="#aab4cc" stroke-width="2"/>
+          <line x1="153" y1="22" x2="747" y2="22" stroke="#aab4cc" stroke-width="2"/>
+          <line x1="153" y1="22" x2="153" y2="68" stroke="#2e7d32" stroke-width="2" marker-end="url(#b-green)"/>
+          <line x1="450" y1="22" x2="450" y2="68" stroke="#e65100" stroke-width="2" marker-end="url(#b-orange)"/>
+          <line x1="747" y1="22" x2="747" y2="68" stroke="#6a1b9a" stroke-width="2" marker-end="url(#b-purple)"/>
+          <text x="175" y="42" font-size="11" fill="#2e7d32" font-family="system-ui,sans-serif" font-weight="600">상품 안내 질문</text>
+          <text x="472" y="42" font-size="11" fill="#e65100" font-family="system-ui,sans-serif" font-weight="600">적금 추천 요청</text>
+          <text x="769" y="42" font-size="11" fill="#6a1b9a" font-family="system-ui,sans-serif" font-weight="600">환율 조회 요청</text>
+        </svg>
+      </div>
+
+      <!-- ── Sub-Agent 3열 ── -->
+      <div class="fa-agents-row" id="fa-agents-row">
+
+        <!-- SA1: Knowledge 활용 -->
+        <div class="fa-sa-col">
+          <div class="fa-sa-card fa-sa-green">
+            <div class="fa-sa-hdr">
+              <div class="fa-sa-badge" style="background:#e8f5e9;color:#2e7d32">📖 Knowledge 활용</div>
+              <div class="fa-sa-name">📚 product_agent <span class="fa-sa-dn">금융 상품 안내 에이전트</span></div>
+              <div class="fa-sa-tag">RAG Q&amp;A · Knowledge Base</div>
+            </div>
+            <div class="fa-sa-body">
+              <div class="fa-node">
+                <div class="fa-node-ico">📂</div>
+                <div>
+                  <div class="fa-node-t">Knowledge: product_guide</div>
+                  <div class="fa-node-s">금융 상품 안내 문서 검색</div>
+                </div>
+              </div>
+              <div class="fa-down-arr">↓</div>
+              <div class="fa-node">
+                <div class="fa-node-ico">🤖</div>
+                <div>
+                  <div class="fa-node-t">LLM 답변 생성</div>
+                  <div class="fa-node-s">금리 · 조건 · 우대 혜택</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="fa-ds-conn">
+            <div class="fa-ds-vline"></div>
+            <div class="fa-ds-card">
+              <div class="fa-ds-ico">📄</div>
+              <div class="fa-ds-name">financial_products_guide.txt</div>
+              <div class="fa-ds-sub">예금 · 적금 · 대출 · 투자 · 외환</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SA2: Workflow 활용 -->
+        <div class="fa-sa-col">
+          <div class="fa-sa-card fa-sa-orange">
+            <div class="fa-sa-hdr">
+              <div class="fa-sa-badge" style="background:#fff3e0;color:#e65100">⚙️ Workflow 활용</div>
+              <div class="fa-sa-name">📋 deposit_advisor_agent <span class="fa-sa-dn">적금 추천 에이전트</span></div>
+              <div class="fa-sa-tag">No-Code Workflow · @flow</div>
+            </div>
+            <div class="fa-flow-wrap">
+              <div class="fa-flow-lbl">⚙️ deposit_advisor_flow</div>
+              <div class="fa-flow-nodes">
+
+                <div class="fa-flow-node fa-fn-purple">
+                  <div class="fa-fn-hdr">① Document Extraction</div>
+                  <div class="fa-fn-body">
+                    <div class="fa-fn-name">docext</div>
+                    <div class="fa-fn-kv">mistral-small-3-1-24b</div>
+                    <div class="fa-fn-kv">deposit_products.pdf</div>
+                    <div class="fa-fn-kv">A/B/C 텍스트 추출</div>
+                  </div>
+                </div>
+
+                <div class="fa-fn-arr">→</div>
+
+                <div class="fa-flow-node fa-fn-teal">
+                  <div class="fa-fn-hdr">② User Form</div>
+                  <div class="fa-fn-body">
+                    <div class="fa-fn-name">userflow</div>
+                    <div class="fa-fn-kv">나이 · 저축 목적</div>
+                    <div class="fa-fn-kv">기간 · 월 납입 금액</div>
+                  </div>
+                </div>
+
+                <div class="fa-fn-arr">→</div>
+
+                <div class="fa-flow-node fa-fn-green">
+                  <div class="fa-fn-hdr">③ LLM Prompt</div>
+                  <div class="fa-fn-body">
+                    <div class="fa-fn-name">prompt</div>
+                    <div class="fa-fn-kv">gpt-oss-120b</div>
+                    <div class="fa-fn-kv">A/B/C 최적 추천</div>
+                    <div class="fa-fn-kv">수령액 + 유의사항</div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+          <div class="fa-ds-conn">
+            <div class="fa-ds-vline"></div>
+            <div class="fa-ds-card">
+              <div class="fa-ds-ico">📑</div>
+              <div class="fa-ds-name">deposit_products.pdf</div>
+              <div class="fa-ds-sub">상품 A / B / C</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SA3: Tool(API) 활용 -->
+        <div class="fa-sa-col">
+          <div class="fa-sa-card fa-sa-purple">
+            <div class="fa-sa-hdr">
+              <div class="fa-sa-badge" style="background:#f3e5f5;color:#6a1b9a">🔧 Tool(API) 활용</div>
+              <div class="fa-sa-name">💱 exchange_rate_agent <span class="fa-sa-dn">실시간 환율 조회 에이전트</span></div>
+              <div class="fa-sa-tag">OpenAPI Tool · 실시간 환율</div>
+            </div>
+            <div class="fa-sa-body">
+              <div class="fa-node">
+                <div class="fa-node-ico">🌐</div>
+                <div>
+                  <div class="fa-node-t">한국수출입은행 API 호출</div>
+                  <div class="fa-node-s">get_single / get_all_exchange_rates</div>
+                </div>
+              </div>
+              <div class="fa-down-arr">↓</div>
+              <div class="fa-node">
+                <div class="fa-node-ico">📊</div>
+                <div>
+                  <div class="fa-node-t">환율 답변 생성</div>
+                  <div class="fa-node-s">매매기준율 · 매입률 · 매도율</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="fa-ds-conn">
+            <div class="fa-ds-vline"></div>
+            <div class="fa-ds-card">
+              <div class="fa-ds-ico">🌐</div>
+              <div class="fa-ds-name">oapi.koreaexim.go.kr</div>
+              <div class="fa-ds-sub">AP01 · 40+ 통화 · HTTP GET</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /fa-agents-row -->
+
+      <!-- ── Sub → 수렴 → 최종 답변 SVG ── -->
+      <svg viewBox="0 0 900 80" width="100%" height="80" preserveAspectRatio="none"
+           xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="display:block;margin-top:4px;">
+        <defs>
+          <marker id="bd-gray" markerWidth="8" markerHeight="8" refX="4" refY="7" orient="auto">
+            <path d="M1,1 L7,4 L1,7 Z" fill="#aab4cc"/>
+          </marker>
+        </defs>
+        <text x="175" y="22" font-size="11" fill="#2e7d32" font-family="system-ui,sans-serif" font-weight="600">▲ 답변 반환</text>
+        <text x="472" y="22" font-size="11" fill="#e65100" font-family="system-ui,sans-serif" font-weight="600">▲ 추천 결과 반환</text>
+        <text x="769" y="22" font-size="11" fill="#6a1b9a" font-family="system-ui,sans-serif" font-weight="600">▲ 실시간 환율 반환</text>
+        <line x1="153" y1="0" x2="153" y2="36" stroke="#2e7d32" stroke-width="2"/>
+        <line x1="450" y1="0" x2="450" y2="36" stroke="#e65100" stroke-width="2"/>
+        <line x1="747" y1="0" x2="747" y2="36" stroke="#6a1b9a" stroke-width="2"/>
+        <line x1="153" y1="36" x2="747" y2="36" stroke="#aab4cc" stroke-width="2"/>
+        <line x1="450" y1="36" x2="450" y2="74" stroke="#aab4cc" stroke-width="2" marker-end="url(#bd-gray)"/>
+      </svg>
+
+      <!-- ── 최종 답변 버블 연결 ── -->
+      <div class="fa-conn-row" style="margin-top:0;">
+        <div class="fa-vline" style="height:0;"></div>
+      </div>
+      <div class="fa-center-col">
+        <div class="fa-bubble" style="background:#1e3a5f;">
+          <div class="fa-bub-icon">💬</div>
+          <div class="fa-bub-title">최종 답변 전달</div>
+          <div class="fa-bub-sub">사용자에게 반환</div>
+        </div>
+      </div>
+
+      <!-- ── Powered by Bob ── -->
+      <div class="fa-powered">
+        <span class="fa-powered-dot"></span>
+        Powered by <strong>IBM Bob</strong>
+        <span class="fa-powered-dot"></span>
+      </div>
+
+    </div><!-- /fa-wrap -->
+  </div>
+
+</body>
+</html>
